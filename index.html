@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Todo Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f4f3ef;
+      --bg-page: #ebebeb;
+      --text-primary: #1a1a18;
+      --text-secondary: #5f5e5a;
+      --text-tertiary: #888780;
+      --border-subtle: rgba(0,0,0,0.12);
+      --border-medium: rgba(0,0,0,0.22);
+      --green-bg: #e1f5ee;
+      --green-text: #0f6e56;
+      --green-mid: #1d9e75;
+      --amber-text: #ba7517;
+      --red-bg: #fcebeb;
+      --red-text: #a32d2d;
+      --red-border: #f09595;
+      --gray-fill: #b4b2a9;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1e1e1c;
+        --bg-secondary: #2a2a27;
+        --bg-page: #141412;
+        --text-primary: #e8e6df;
+        --text-secondary: #888780;
+        --text-tertiary: #555450;
+        --border-subtle: rgba(255,255,255,0.1);
+        --border-medium: rgba(255,255,255,0.18);
+        --green-bg: #0a2e22;
+        --green-text: #5dcaa5;
+        --green-mid: #1d9e75;
+        --amber-text: #ef9f27;
+        --red-bg: #2e0f0f;
+        --red-text: #f09595;
+        --red-border: #791f1f;
+        --gray-fill: #444441;
+      }
+    }
+
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+    .brand { font-size: 13px; color: var(--text-secondary); letter-spacing: 0.04em; }
+    .brand strong { color: var(--text-primary); font-weight: 600; }
+    #endpoint-label { font-size: 13px; color: var(--green-mid); letter-spacing: 0.03em; transition: color 0.2s; }
+
+    /* ── Stats ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 1.25rem;
+    }
+    .stat {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1rem;
+      border: 0.5px solid var(--border-subtle);
+    }
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 4px;
+    }
+    .stat-value { font-size: 24px; font-weight: 600; color: var(--text-primary); }
+    .stat-value.green { color: var(--green-mid); }
+    .stat-value.amber { color: var(--amber-text); }
+
+    /* ── Charts ── */
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 1.25rem;
+    }
+    .chart-card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      border: 0.5px solid var(--border-subtle);
+    }
+    .chart-label {
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 10px;
+    }
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── Todo list ── */
+    .todo-card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+      border: 0.5px solid var(--border-subtle);
+      margin-bottom: 1.25rem;
+    }
+    .todo-header {
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 12px;
+    }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 0.5px solid var(--border-subtle);
+      font-size: 13px;
+    }
+    .todo-item:last-of-type { border-bottom: none; }
+    .todo-id {
+      color: var(--text-tertiary);
+      font-size: 11px;
+      min-width: 18px;
+    }
+    .todo-task { flex: 1; color: var(--text-primary); }
+    .todo-task.done {
+      text-decoration: line-through;
+      color: var(--text-tertiary);
+    }
+    .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      user-select: none;
+      transition: opacity 0.15s;
+    }
+    .badge:hover { opacity: 0.75; }
+    .badge.done-badge { background: var(--green-bg); color: var(--green-text); }
+    .badge.pending-badge {
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      border: 0.5px solid var(--border-medium);
+    }
+    .todo-actions { display: flex; gap: 6px; }
+    .btn-sm {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 0.5px solid var(--border-medium);
+      background: transparent;
+      color: var(--text-secondary);
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-sm:hover { background: var(--bg-primary); color: var(--text-primary); }
+    .btn-sm.danger:hover { background: var(--red-bg); color: var(--red-text); border-color: var(--red-border); }
+
+    /* ── Add row ── */
+    .add-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .add-row input {
+      flex: 1;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      padding: 7px 10px;
+      border: 0.5px solid var(--border-medium);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .add-row input::placeholder { color: var(--text-tertiary); }
+    .add-row input:focus { border-color: var(--green-mid); }
+    .btn-add {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      padding: 7px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 0.5px solid var(--green-mid);
+      background: var(--green-bg);
+      color: var(--green-text);
+      font-weight: 600;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-add:hover { background: #9fe1cb; }
+
+    /* ── Inline edit ── */
+    .edit-input {
+      flex: 1;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      padding: 3px 7px;
+      border: 0.5px solid var(--green-mid);
+      border-radius: 4px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      outline: none;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 2rem;
+      letter-spacing: 0.04em;
+    }
+
+    @media (max-width: 520px) {
+      .charts { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(3, 1fr); }
+      .topbar { flex-direction: column; align-items: flex-start; gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="topbar">
+      <div class="brand"><strong>// Todo API</strong> — in-memory store</div>
+      <div id="endpoint-label">GET /todos</div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="charts">
+      <div class="chart-card">
+        <div class="chart-label">completion rate</div>
+        <div style="position:relative;width:100%;height:150px;">
+          <canvas id="donutChart" role="img" aria-label="Donut chart showing todo completion rate"></canvas>
+        </div>
+        <div class="legend" id="donut-legend"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-label">task status breakdown</div>
+        <div style="position:relative;width:100%;height:150px;">
+          <canvas id="barChart" role="img" aria-label="Bar chart showing individual task statuses"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="todo-card">
+      <div class="todo-header">task list</div>
+      <div id="todo-list"></div>
+      <div class="add-row">
+        <input id="new-task-input" type="text" placeholder="new task name..." />
+        <button class="btn-add" onclick="addTodo()">+ POST /todos</button>
+      </div>
+    </div>
+
+    <div class="footer">todo-dashboard &mdash; all data is in-memory (resets on refresh)</div>
+  </div>
+
+  <script>
+    /* ── State ── */
+    let todos = [
+      { id: 1, task: 'Learn Node.js',  status: true  },
+      { id: 2, task: 'Learn Express',  status: true  },
+      { id: 3, task: 'Learn MongoDB',  status: false }
+    ];
+    let nextId   = 4;
+    let editingId = null;
+
+    /* ── Helpers ── */
+    function getStats() {
+      const total   = todos.length;
+      const done    = todos.filter(t => t.status).length;
+      const pending = total - done;
+      const pct     = total ? Math.round((done / total) * 100) : 0;
+      return { total, done, pending, pct };
+    }
+
+    function flash(label) {
+      const el = document.getElementById('endpoint-label');
+      el.textContent = label;
+      setTimeout(() => { el.textContent = 'GET /todos'; }, 1400);
+    }
+
+    /* ── Render stats ── */
+    function renderStats() {
+      const { total, done, pending } = getStats();
+      document.getElementById('stats').innerHTML = `
+        <div class="stat">
+          <div class="stat-label">total tasks</div>
+          <div class="stat-value">${total}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">completed</div>
+          <div class="stat-value green">${done}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">pending</div>
+          <div class="stat-value amber">${pending}</div>
+        </div>
+      `;
+    }
+
+    /* ── Render todo list ── */
+    function renderTodoList() {
+      const list = document.getElementById('todo-list');
+      list.innerHTML = todos.map(t => {
+        if (editingId === t.id) {
+          return `
+            <div class="todo-item">
+              <span class="todo-id">${t.id}</span>
+              <input class="edit-input" id="edit-input-${t.id}" value="${escHtml(t.task)}" />
+              <button class="btn-sm" onclick="saveEdit(${t.id})">save</button>
+              <button class="btn-sm" onclick="cancelEdit()">cancel</button>
+            </div>`;
+        }
+        const badgeClass = t.status ? 'done-badge' : 'pending-badge';
+        const taskClass  = t.status ? 'done' : '';
+        return `
+          <div class="todo-item">
+            <span class="todo-id">${t.id}</span>
+            <span class="todo-task ${taskClass}">${escHtml(t.task)}</span>
+            <span class="badge ${badgeClass}" onclick="toggleStatus(${t.id})" title="click to toggle">${t.status}</span>
+            <div class="todo-actions">
+              <button class="btn-sm" onclick="startEdit(${t.id})">PUT</button>
+              <button class="btn-sm danger" onclick="deleteTodo(${t.id})">DEL</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      if (editingId !== null) {
+        const inp = document.getElementById('edit-input-' + editingId);
+        if (inp) { inp.focus(); inp.select(); }
+      }
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* ── Update charts ── */
+    function updateCharts() {
+      const { done, pending } = getStats();
+
+      donutChart.data.datasets[0].data = [done, pending];
+      donutChart.update();
+
+      barChart.data.labels   = todos.map(t => 'id:' + t.id);
+      barChart.data.datasets[0].data            = todos.map(t => t.status ? 1 : 0);
+      barChart.data.datasets[0].backgroundColor = todos.map(t => t.status ? '#1d9e75' : '#b4b2a9');
+      barChart.update();
+
+      document.getElementById('donut-legend').innerHTML = `
+        <span><span class="legend-dot" style="background:#1d9e75"></span>done (${done})</span>
+        <span><span class="legend-dot" style="background:#b4b2a9"></span>pending (${pending})</span>
+      `;
+    }
+
+    /* ── Master render ── */
+    function renderAll() {
+      renderStats();
+      renderTodoList();
+      updateCharts();
+    }
+
+    /* ── CRUD operations ── */
+    function addTodo() {
+      const inp  = document.getElementById('new-task-input');
+      const task = inp.value.trim();
+      if (!task) return;
+      todos.push({ id: nextId++, task, status: false });
+      inp.value = '';
+      flash('POST /todos → 201 Created');
+      renderAll();
+    }
+
+    function deleteTodo(id) {
+      todos = todos.filter(t => t.id !== id);
+      flash(`DELETE /todos/${id} → 200 OK`);
+      renderAll();
+    }
+
+    function toggleStatus(id) {
+      const t = todos.find(t => t.id === id);
+      if (t) t.status = !t.status;
+      flash(`PUT /todos/${id} → 200 OK`);
+      renderAll();
+    }
+
+    function startEdit(id)  { editingId = id;   renderTodoList(); }
+    function cancelEdit()   { editingId = null;  renderTodoList(); }
+    function saveEdit(id) {
+      const inp = document.getElementById('edit-input-' + id);
+      const t   = todos.find(t => t.id === id);
+      if (t && inp && inp.value.trim()) t.task = inp.value.trim();
+      editingId = null;
+      flash(`PUT /todos/${id} → 200 OK`);
+      renderAll();
+    }
+
+    /* ── Keyboard shortcuts ── */
+    document.getElementById('new-task-input')
+      .addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
+
+    /* ── Charts setup ── */
+    const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+    const tickColor  = isDark ? '#888780' : '#5f5e5a';
+    const gridColor  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
+    const donutChart = new Chart(document.getElementById('donutChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['done', 'pending'],
+        datasets: [{
+          data: [2, 1],
+          backgroundColor: ['#1d9e75', '#b4b2a9'],
+          borderWidth: 0,
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
+        }
+      }
+    });
+
+    const barChart = new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: {
+        labels: ['id:1', 'id:2', 'id:3'],
+        datasets: [{
+          label: 'status',
+          data: [1, 1, 0],
+          backgroundColor: ['#1d9e75', '#1d9e75', '#b4b2a9'],
+          borderWidth: 0,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            min: 0, max: 1,
+            ticks: {
+              stepSize: 1,
+              callback: v => v === 1 ? 'true' : 'false',
+              font: { family: 'Courier New', size: 10 },
+              color: tickColor
+            },
+            grid: { color: gridColor }
+          },
+          x: {
+            ticks: { font: { family: 'Courier New', size: 10 }, color: tickColor },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+
+    /* ── Initial render ── */
+    renderAll();
+  </script>
+</body>
+</html>
