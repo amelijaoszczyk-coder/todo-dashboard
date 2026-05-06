@@ -4,12 +4,12 @@ A single-file todo manager planner app used for time-management with live chart 
 Features:
 Add, edit, toggle, and delete tasks
 Donut and bar charts update in real time
-REST-style feedback (POST /todos → 201 Created, etc.)
-Dark mode support — no npm, no build step needed
+REST-style feedback (POST /todos -> 201 Created, etc.)
+Dark mode support - no npm, no build step needed
 
 Getting Started
 Locally - download index.html and open it in any browser.
-GitHub Pages - push to a repo, enable Pages under Settings -> Pages -> main / root, and it'll be live at:
+GitHub Pages - push to a repo, enable Pages under Settings -> Pages -> main / root, and it'll be live at: https://amelijaoszczyk-coder.github.io/todo-dashboard/
 
 Note
 Data is in-memory only - refreshing the page resets the list to its defaults.
